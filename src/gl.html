@@ -4,51 +4,12 @@
     <title>SDF Circle Smooth Union</title>
 </head>
 <body style="background-color: #333">
-    <canvas id="glCanvas" width="512" height="512"></canvas>
+    <canvas id="glCanvas" width="840" height="473"></canvas>
 
-    <script id="vertex-shader" type="x-shader/x-vertex">
-        attribute vec2 aPosition;
-        void main() {
-            gl_Position = vec4(aPosition, 0.0, 1.0);
-        }
-    </script>
+    <!-- <script id="vertex-shader" src="vert.glsl" type="x-shader/x-vertex"></script>
+    <script id="fragment-shader" src="frag.glsl" type="x-shader/x-fragment"></script> -->
+    <!-- <script src="path/to/stats.min.js"></script> -->
 
-    <script id="fragment-shader" type="x-shader/x-fragment">
-        precision highp float;
-        uniform vec2 uResolution;
-
-        float circle1(vec2 p, float radius) {
-            return length(p - vec2(-0.0, 0.0)) - radius;
-        }
-
-        float circle2(vec2 p, float radius) {
-            return length(p - vec2(0.5, 0.0)) - radius;
-        }
-
-        float opSmoothUnion(float d1, float d2, float k) {
-            float alpha = clamp(0.5 + (d2 - d1) / (2.0 * k), 0.0, 1.0);
-            return mix(d2, d1, alpha) - k * alpha * (1.0 - alpha);
-        }
-
-        void main() {
-            vec2 uv = (gl_FragCoord.xy - 0.5 * uResolution) / uResolution.y;
-
-            uv = uv * 3.0;
-            
-            float d1 = circle1(uv, 0.1);
-            float d2 = circle2(uv, 0.1);
-            
-            float smoothUnion;
-            smoothUnion = d1;
-            //smoothUnion = opSmoothUnion(d1, d2, 0.5);
-
-            smoothUnion = opSmoothUnion(smoothUnion, d1, 0.5);
-            
-            gl_FragColor = vec4(vec3(smoothUnion), 1.0);
-            //gl_FragColor = vec4(uv, 0.0, 1.0);
-        }
-    </script>
-
-    <script src="z.js"></script>
+    <script src="z.js" type="module"></script>
 </body>
 </html>
