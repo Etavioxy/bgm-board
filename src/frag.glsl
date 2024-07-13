@@ -10,10 +10,6 @@ uniform vec3 uCircles[MAX_CIRCLES]; // 最大圆的数量
 float sdCircle( in vec2 p, in vec2 o, in float r ) {
     return length(p - o)-r;
 }
-    
-float opSmoothUnion( float sumexp, float k ) {
-    return -log(max(0.0001,sumexp)) / k;
-}
 
 void calc(in vec2 p, out float res){
     float k = 10.0;
@@ -24,14 +20,10 @@ void calc(in vec2 p, out float res){
         vec2 center = uCircles[i].xy;
         float radius = uCircles[i].z;
         float d = sdCircle(p, center, radius);
-        if ( i == 0 ) {
-            sumexp -= exp(-k*d);
-            continue;
-        }
         sumexp += exp(-k*d);
     }
     
-    res = opSmoothUnion(sumexp, k);
+    res = sumexp;
 }
 
 void main() {

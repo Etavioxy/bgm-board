@@ -3,7 +3,6 @@ const canvas = document.getElementById('glCanvas');
 const gl = canvas.getContext('webgl');
 
 const available_extensions = gl.getSupportedExtensions();
-console.log(available_extensions);
 
 if(!(available_extensions.includes("OES_texture_float"))){
   console.error('OES_texture_float not support!');
@@ -14,83 +13,84 @@ var linear =  gl.getExtension("OES_texture_float_linear");
 
 
 // 编译并链接着色器程序
-let vertexShader_text = await(await fetch('vert.glsl')).text();
-let fragmentShader_text = await(await fetch('frag.glsl')).text();
+const vertexShader_text = await(await fetch('vert.glsl')).text();
+const fragmentShader_text = await(await fetch('frag.glsl')).text();
 
 let program = createShaderProgram(gl, vertexShader_text, fragmentShader_text);
 
-const displayVertexShaderSource = `
-attribute vec2 position;
-varying vec2 texCoord;
+const fragmentShader2_text = await(await fetch('frag2.glsl')).text();
 
-void main() {
-    texCoord = position * 0.5 + 0.5;
-    gl_Position = vec4(position, 0.0, 1.0);
-}`;
-
-const displayFragmentShaderSource = `
-precision mediump float;
-varying vec2 texCoord;
-uniform sampler2D uTexture;
-
-void main() {
-    //gl_FragColor = vec4(texCoord,0,0);
-    //return ;
-    float d = texture2D(uTexture, texCoord).r;
-    
-    // coloring
-    vec3 col = (d>0.0) ? vec3(0.4,0.7,0.4) : vec3(0.65,0.85,1.0);
-    col *= 1.0 - exp(-6.0*abs(d));
-    col *= 0.8 + 0.2*cos(150.0*d);
-    col = mix( col, vec3(1.0), 1.0-smoothstep(0.0,0.01,abs(d)) );
-
-    gl_FragColor = vec4(col,1.0);
-}`;
-
-let displayProgram = createShaderProgram(gl, displayVertexShaderSource, displayFragmentShaderSource);
+let displayProgram = createShaderProgram(gl, vertexShader_text, fragmentShader2_text);
 
 let [ framebuffer, texture ] = createFramebuffer(gl, program, canvas.width, canvas.height);
 
-gl.useProgram(displayProgram);
+// init display
+{
+  gl.useProgram(displayProgram);
+  
+  const uResolution = gl.getUniformLocation(displayProgram, 'uResolution');
+  gl.uniform2f(uResolution, canvas.width, canvas.height);
+  
+  const uTextureLocation = gl.getUniformLocation(displayProgram, 'uTexture');
+  gl.uniform1i(uTextureLocation, 0);
+}
 
-const uTextureLocation = gl.getUniformLocation(displayProgram, 'uTexture');
-gl.uniform1i(uTextureLocation, 0);
+// init program
+{
+  gl.useProgram(program);
+  
+  // 设置 uniform 参数
+  const uResolution = gl.getUniformLocation(program, 'uResolution');
+  gl.uniform2f(uResolution, canvas.width, canvas.height);
+}
 
-gl.useProgram(program);
+{
+  // 设置顶点属性
+  const aPosition = gl.getAttribLocation(program, 'aPosition');
+  gl.enableVertexAttribArray(aPosition);
+  
+  const vertices = new Float32Array([-1, -1, -1, 1, 1, -1, 1, 1]);
+  const vertexBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+  gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
+}
 
-// 设置顶点属性
-const aPosition = gl.getAttribLocation(program, 'aPosition');
-gl.enableVertexAttribArray(aPosition);
-
-const vertices = new Float32Array([-1, -1, -1, 1, 1, -1, 1, 1]);
-const vertexBuffer = gl.createBuffer();
-gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
-gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
-gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
-
-// 设置 uniform 参数
-const uResolution = gl.getUniformLocation(program, 'uResolution');
-gl.uniform2f(uResolution, canvas.width, canvas.height);
-
-const circleData = [
-  1.0,  0.0, 0.5,
-  0.0,  0.0, 0.7,
-  -1.0, 0.0, 0.35,
-];
-
+const circleData = {
+  m: [
+    1.0,  0.0, 0.5,
+  ],
+  a: [
+    0.0,  0.0, 0.7,
+    -1.0, 0.0, 0.35,
+  ]
+};
+  
 const numCircles = gl.getUniformLocation(program, 'numCircles');
 const uCircles = gl.getUniformLocation(program, 'uCircles');
-gl.uniform1i(numCircles, 3);
-gl.uniform3fv(uCircles, circleData);
+
+
+gl.useProgram(displayProgram);
+const numCircles_dis = gl.getUniformLocation(displayProgram, 'numCircles');
+const uCircles_dis = gl.getUniformLocation(displayProgram, 'uCircles');
 
 let times = 0;
 
 function updateData(){
-  circleData[0] += -0.001;
-  if( (++times)%1000 == 0 ) console.log(times);
-  gl.uniform1i(numCircles, 3);
-  gl.uniform3fv(uCircles, circleData);
+  //circleData.a[2] += 0.001;
+  circleData.m[0] += -0.001;
+  //if( (++times)%1000 == 0 ) console.log(times);
+  gl.uniform1i(numCircles, circleData.a.length/3);
+  gl.uniform3fv(uCircles, circleData.a);
 }
+
+function updateData_dis(){
+  //circleData[0] += -0.001;
+  //if( (++times)%1000 == 0 ) console.log(times);
+  gl.uniform1i(numCircles_dis, circleData.m.length/3);
+  gl.uniform3fv(uCircles_dis, circleData.m);
+}
+
 
 // 渲染循环
 function render() {
@@ -106,6 +106,7 @@ function render() {
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
   gl.useProgram(displayProgram);
+  updateData_dis();
 
   // 绑定纹理并绘制
   gl.activeTexture(gl.TEXTURE0);
