@@ -2,6 +2,17 @@
 const canvas = document.getElementById('glCanvas');
 const gl = canvas.getContext('webgl');
 
+const available_extensions = gl.getSupportedExtensions();
+console.log(available_extensions);
+
+if(!(available_extensions.includes("OES_texture_float"))){
+  console.error('OES_texture_float not support!');
+}
+
+var ext = gl.getExtension("OES_texture_float");
+var linear =  gl.getExtension("OES_texture_float_linear");
+
+
 // 编译并链接着色器程序
 let vertexShader_text = await(await fetch('vert.glsl')).text();
 let fragmentShader_text = await(await fetch('frag.glsl')).text();
@@ -13,7 +24,7 @@ attribute vec2 position;
 varying vec2 texCoord;
 
 void main() {
-    texCoord = -position * 0.5 + 0.5;
+    texCoord = position * 0.5 + 0.5;
     gl_Position = vec4(position, 0.0, 1.0);
 }`;
 
@@ -25,16 +36,27 @@ uniform sampler2D uTexture;
 void main() {
     //gl_FragColor = vec4(texCoord,0,0);
     //return ;
-    gl_FragColor = texture2D(uTexture, texCoord);
+    float d = texture2D(uTexture, texCoord).r;
+    
+    // coloring
+    vec3 col = (d>0.0) ? vec3(0.4,0.7,0.4) : vec3(0.65,0.85,1.0);
+    col *= 1.0 - exp(-6.0*abs(d));
+    col *= 0.8 + 0.2*cos(150.0*d);
+    col = mix( col, vec3(1.0), 1.0-smoothstep(0.0,0.01,abs(d)) );
+
+    gl_FragColor = vec4(col,1.0);
 }`;
 
 let displayProgram = createShaderProgram(gl, displayVertexShaderSource, displayFragmentShaderSource);
 
 let [ framebuffer, texture ] = createFramebuffer(gl, program, canvas.width, canvas.height);
 
+gl.useProgram(displayProgram);
 
 const uTextureLocation = gl.getUniformLocation(displayProgram, 'uTexture');
 gl.uniform1i(uTextureLocation, 0);
+
+gl.useProgram(program);
 
 // 设置顶点属性
 const aPosition = gl.getAttribLocation(program, 'aPosition');
@@ -82,9 +104,10 @@ function render() {
   
   // 解绑帧缓冲区
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-  
-  // 绑定纹理并绘制
+
   gl.useProgram(displayProgram);
+
+  // 绑定纹理并绘制
   gl.activeTexture(gl.TEXTURE0);
   gl.bindTexture(gl.TEXTURE_2D, texture);
   
@@ -120,13 +143,16 @@ function createFramebuffer(gl, program, width, height){
   // 创建一个纹理对象并设置其尺寸
   const texture = gl.createTexture();
   gl.bindTexture(gl.TEXTURE_2D, texture);
-  //gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, width, height, 0, gl.RED, gl.FLOAT, null); // 单通道浮点数纹理设置
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null); // 假设尺寸为 512x512
+
+
+  //gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null); // 假设尺寸为 512x512
   //z.js:110  WebGL: INVALID_ENUM: texImage2D: invalid format
   //gl.texImage2D(gl.TEXTURE_2D, 0, gl.R16F, width, height, 0, gl.RED, gl.HALF_FLOAT, null); // 单通道浮点数纹理设置
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, width, height, 0, gl.RGB, gl.FLOAT, null); // 单通道浮点数纹理设置
+  gl.texParameterf(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.texParameterf(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameterf(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameterf(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   
   // 将纹理附加到帧缓冲对象上
   gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
