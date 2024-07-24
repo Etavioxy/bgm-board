@@ -1,18 +1,23 @@
 <template>
   <div main="darker">
     <div ref="root" :class="{ insight: true, 'has-highlight': tooltip.active }">
+      <div id="gl-svg-board">
+        <canvas style="border: 1px solid blue;"
+        id="glCanvas" width="840" height="473"></canvas>
+      </div>
       <svg
+        style="display: block; border: 1px solid blue;"
         ref="svg"
         id="couple"
         v-bind="svgAttrs"
       >
-        <g>
+        <!-- <g>
           <link-view
             :link="link0"
             @mouseenter="onMouseEnterLink"
             @mouseleave="onMouseLeaveLink"
           ></link-view>
-        </g>
+        </g> -->
         <g class="links">
           <link-view
             v-for="(link, index) in links" :key="index"
@@ -53,9 +58,22 @@ import * as d3 from 'd3-force'
 import LinkView from './link.vue'
 import NodeView from './node.vue'
 
+import * as gl from './gl';
+
+onMounted(()=>{
+gl.start(document.getElementById('glCanvas'));
+});
+
 const node_a = {} as Node;
 const node_b = {} as Node;
-const store = reactive({ insight: { nodes: [node_a, node_b], edges: [{source:node_a, target:node_b}] } });
+const node_c = {} as Node;
+const node_d = {} as Node;
+const store = reactive({ insight: { nodes: [node_a, node_b, node_c, node_d], edges: [
+  {source:node_a, target:node_b},
+  {source:node_a, target:node_c},
+  {source:node_b, target:node_d},
+  {source:node_a, target:node_d},
+] } });
 
 const root = ref<HTMLElement>()
 const { width, height } = useElementSize(root)
@@ -90,8 +108,8 @@ const svgAttrs = computed(() => {
     maxX = Math.max(maxX, node.x)
     maxY = Math.max(maxY, node.y)
   }
-  const vpWidth = maxX - minX + 200
-  const vpHeight = maxY - minY + 200
+  const vpWidth = 300
+  const vpHeight = 300
   let transform: string
   if (width.value / vpWidth > height.value / vpHeight) {
     const scale = height.value / vpHeight
@@ -201,7 +219,7 @@ useEventListener('touchend', onDragEnd)
 
 function onMouseEnterNode(node: Node, event: MouseEvent) {
   fNode.value = node
-  const result = ['插件：' + node.name]
+  const result = ['插件：' + `${node.name} ${node.x} ${node.y}`]
   if (node.services) {
     result.push('提供服务：' + node.services.join('，'))
   }

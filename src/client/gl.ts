@@ -1,6 +1,27 @@
+export { start, updateData }
+
+let canvas;
+let gl;
+let program;
+let displayProgram;
+
+const circleData = {
+  m: [
+    1.0,  0.0, 0.5,
+  ],
+  a: [
+    1.0,  0.0, 0.5,
+  ]
+};
+
+async function start(canvas0){
+
 // 初始化WebGL上下文
-const canvas = document.getElementById('glCanvas');
-const gl = canvas.getContext('webgl');
+//const canvas = document.getElementById('glCanvas');
+
+canvas = canvas0;
+
+gl = canvas.getContext('webgl');
 
 const available_extensions = gl.getSupportedExtensions();
 
@@ -16,11 +37,11 @@ var linear =  gl.getExtension("OES_texture_float_linear");
 const vertexShader_text = await(await fetch('vert.glsl')).text();
 const fragmentShader_text = await(await fetch('frag.glsl')).text();
 
-let program = createShaderProgram(gl, vertexShader_text, fragmentShader_text);
+program = createShaderProgram(gl, vertexShader_text, fragmentShader_text);
 
 const fragmentShader2_text = await(await fetch('frag2.glsl')).text();
 
-let displayProgram = createShaderProgram(gl, vertexShader_text, fragmentShader2_text);
+displayProgram = createShaderProgram(gl, vertexShader_text, fragmentShader2_text);
 
 let [ framebuffer, texture ] = createFramebuffer(gl, program, canvas.width, canvas.height);
 
@@ -55,15 +76,6 @@ let [ framebuffer, texture ] = createFramebuffer(gl, program, canvas.width, canv
   gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
   gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
 }
-
-const circleData = {
-  m: [
-    1.0,  0.0, 0.5,
-  ],
-  a: [
-    1.0,  0.0, 0.5,
-  ]
-};
   
 const numCircles = gl.getUniformLocation(program, 'numCircles');
 const uCircles = gl.getUniformLocation(program, 'uCircles');
@@ -73,30 +85,16 @@ gl.useProgram(displayProgram);
 const numCircles_dis = gl.getUniformLocation(displayProgram, 'numCircles');
 const uCircles_dis = gl.getUniformLocation(displayProgram, 'uCircles');
 
-let times = 0;
-
-function updateData(){
-  //circleData.a[2] += 0.001;
-  circleData.m[0] += -0.001;
-  circleData.a[0] += -0.001;
-  //if( (++times)%1000 == 0 ) console.log(times);
-  gl.uniform1i(numCircles, circleData.a.length/3);
-  gl.uniform3fv(uCircles, circleData.a);
-}
-
-function updateData_dis(){
-  //circleData[0] += -0.001;
-  //if( (++times)%1000 == 0 ) console.log(times);
-  gl.uniform1i(numCircles_dis, circleData.m.length/3);
-  gl.uniform3fv(uCircles_dis, circleData.m);
-}
-
 
 // 渲染循环
 function render() {
   // 绘制到帧缓冲
   gl.useProgram(program);
   updateData();
+  {
+gl.uniform1i(numCircles, circleData.a.length/3);
+gl.uniform3fv(uCircles, circleData.a);
+  }
   gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
@@ -106,7 +104,10 @@ function render() {
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
   gl.useProgram(displayProgram);
-  updateData_dis();
+  {
+gl.uniform1i(numCircles_dis, circleData.m.length/3);
+gl.uniform3fv(uCircles_dis, circleData.m);
+  }
 
   // 绑定纹理并绘制
   gl.activeTexture(gl.TEXTURE0);
@@ -114,9 +115,18 @@ function render() {
   
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 }
-requestAnimationFrame(render);
 
-(function(){var script=document.createElement('script');script.onload=function(){var stats=new Stats();document.body.appendChild(stats.dom);requestAnimationFrame(function loop(){stats.update();requestAnimationFrame(loop)});};script.src='//cdn.jsdelivr.net/gh/Kevnz/stats.js/build/stats.min.js';document.head.appendChild(script);})()
+  requestAnimationFrame(render);
+  
+  (function(){var script=document.createElement('script');script.onload=function(){var stats=new Stats();document.body.appendChild(stats.dom);requestAnimationFrame(function loop(){stats.update();requestAnimationFrame(loop)});};script.src='//cdn.jsdelivr.net/gh/Kevnz/stats.js/build/stats.min.js';document.head.appendChild(script);})()
+}
+
+function updateData(){
+  //circleData.a[2] += 0.001;
+  circleData.m[0] += -0.001;
+  circleData.a[0] += -0.001;
+//circleData[0] += -0.001;
+}
 
 function createShaderProgram(gl, vertexShader_text, fragmentShader_text){
   const vertexShader = gl.createShader(gl.VERTEX_SHADER);
