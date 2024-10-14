@@ -8,9 +8,9 @@ const data = ref('');
 onMounted(() => {
   (async()=>{
     const res = await Promise.all([
-      //fetch('https://api.bgm.tv/v0/users/z7z_Eta/collections?subject_type=2&type=2&limit=100&offset=0'),
-      //fetch('https://api.bgm.tv/v0/users/z7z_Eta/collections?subject_type=2&type=2&limit=100&offset=100'),
-      //fetch('https://api.bgm.tv/v0/users/z7z_Eta/collections?subject_type=2&type=2&limit=100&offset=200'),
+      fetch('https://api.bgm.tv/v0/users/z7z_Eta/collections?subject_type=2&type=2&limit=100&offset=0'),
+      fetch('https://api.bgm.tv/v0/users/z7z_Eta/collections?subject_type=2&type=2&limit=100&offset=100'),
+      fetch('https://api.bgm.tv/v0/users/z7z_Eta/collections?subject_type=2&type=2&limit=100&offset=200'),
     ]);
     if( res[0].status!==200 ) console.error('Failed to fetch data');
     const collections = (await Promise.all(res.map(x => x.json()))).map(x => x.data).reduce((x, y) => { return x.concat(y); } , []);
