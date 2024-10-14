@@ -35,5 +35,4 @@ void main() {
     
     gl_FragColor.r = d;
     return;
-
 }

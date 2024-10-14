@@ -58,12 +58,6 @@ import * as d3 from 'd3-force'
 import LinkView from './link.vue'
 import NodeView from './node.vue'
 
-import * as gl from './gl';
-
-onMounted(()=>{
-gl.start(document.getElementById('glCanvas'));
-});
-
 const node_a = {} as Node;
 const node_b = {} as Node;
 const node_c = {} as Node;
